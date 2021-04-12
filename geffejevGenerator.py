@@ -1,0 +1,130 @@
+import numpy as np 
+import itertools
+
+p1 = [1,0,0,1,0]
+p2 = [1,0,0,0,0,0,1]
+p3 = [1,0,0,0,0,0,0,0,0,1,0]
+
+abeceda = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+def vsiMozniKljuci(dolzina):
+    tabela = ["".join(seq) for seq in itertools.product("01", repeat=dolzina)]
+    return tabela
+
+def dobiCelotenStringRekurzivno(kriptogram,polinom,trenutniKljuc):
+    red = len(polinom)
+    celotenNiz = trenutniKljuc
+    if(red == 5):
+        for i in range(red,len(kriptogram)):
+            bit = (int(celotenNiz[i-5]) + int(celotenNiz[i-2]))%2
+            bit = str(bit)
+            celotenNiz += bit
+    if (red == 11):
+        for i in range(red,len(kriptogram)):
+            bit = (int(celotenNiz[i-11]) + int(celotenNiz[i-2]))%2
+            bit = str(bit)
+            celotenNiz += bit
+    return celotenNiz
+
+def celotenStrinLFSR2(kriptogram, polinom, trenutniKljuc):
+    celotenNiz = trenutniKljuc
+    for i in range(7, len(kriptogram)): #ker je red 7
+        bit = (int(celotenNiz[i-7]) + int(celotenNiz[i-1]))%2
+        bit = str(bit)
+        celotenNiz += bit
+    return celotenNiz
+
+
+def sestejNiza(c, current):
+    vsota = ''
+    for i in range(len(c)):
+        temp = (int(c[i]) + int(current[i]))%2
+        temp = str(temp)
+        vsota = vsota + temp
+    return vsota
+
+def poglejNeveljavne(besedilo): #po 5 bitov gledas, in kdaj vsota preseze 26
+    stevec = 0
+    for i in range(0, len(besedilo), 5):
+        sum = 0
+        niz = ''
+        for j in range(i,i+5):
+            niz += besedilo[j]
+        sum += int(niz, 2)
+        if(sum > 25): #torej je znak illegalen
+            stevec += 1  
+    
+    return stevec
+
+def poisciNajmanjIlegalnih(tabela):
+    min = 10000000000
+    inx  = 0
+    for i in range(len(tabela)):
+        if(tabela[i] < min):
+            min = tabela[i]
+            inx  = i
+    return inx
+
+
+def main(kriptogram,red, polinom):
+    tabelaNeveljavnih = np.zeros(pow(2,red))
+    tabelaKljucev = vsiMozniKljuci(red)
+    for i in range(len(tabelaKljucev)): #gres po vseh kljucihft
+        currKey = tabelaKljucev[i]
+        currNiz = dobiCelotenStringRekurzivno(kriptogram, polinom, currKey)
+        sestevek = sestejNiza(kriptogram, currNiz)
+        tabelaNeveljavnih[i] = poglejNeveljavne(sestevek)
+    
+    indeksNajmanjsega = poisciNajmanjIlegalnih(tabelaNeveljavnih)
+    potencialniKljuc = tabelaKljucev[indeksNajmanjsega]
+    #print(potencialniKljuc)
+    return potencialniKljuc
+
+def formulaZ(z1,z2,z3):
+    zaporedje = ''
+    for i in range(len(z1)):
+        temp = (int(z1[i])*int(z2[i]) + int(z2[i])*int(z3[i]) + int(z3[i]))%2
+        temp = str(temp)
+        zaporedje += temp
+    
+    return zaporedje
+        
+def desifrirajBesedilo(kriptogram):
+    besedilo = ''
+    for i in range(0,len(kriptogram),5):
+        niz = ''
+        stevilo = 0
+        for j in range(i, i+5):
+            niz += kriptogram[j]
+        stevilo = int(niz,2)
+        besedilo += abeceda[stevilo]
+    
+    return besedilo
+
+
+def main2(kriptogram, red, zap1, zap3):
+    tabelaIlegalnih = np.zeros(pow(2,red))
+    tabelaKljucev = vsiMozniKljuci(red)
+    for i in range(len(tabelaKljucev)):
+        currKey = tabelaKljucev[i]
+        currNiz = celotenStrinLFSR2(kriptogram, p2, currKey)
+        celotenNiz = formulaZ(zap1, currNiz, zap3)
+        sestevek = sestejNiza(kriptogram, celotenNiz)
+        tabelaIlegalnih[i] = poglejNeveljavne(sestevek)
+        if(tabelaIlegalnih[i] == 0):
+            print("Kljuc 2: ", tabelaKljucev[i])
+            desifrirano = desifrirajBesedilo(sestevek)
+            print("Desifrirano Besedilo: ", desifrirano)
+            return tabelaKljucev[i]
+
+    return 0
+
+
+kript = '01100111011111111001100011111010101011100111101100011111100100111000111010010110111110110110111010000000011000100110111011001110000110010111010010011000101110001000000101011101011101011110111111110110110111001000100000100011101000000011110010110110100011100101100100111011011111011000100010111010110011101001001111100100100011000111011110001001011111010110011101010011010111010010000010000001000100001101010111010011100100011111010111111011100011000011000001111000101110100110101100011111000110010011100010101100011110101001101000101010101001001111111101101110110111010010110010010111100111111110000000010001010011101000001010010101111000111101100000000111111111010100111010010000110011000111111101011010001001110101101010101101101100101101011101000010011111110010001010101000101011111101110000100101110001110111010011101101110011000111000110000001010111101100000011000111100110101100111010000000111010110111101110000001010100110111000010001111000001110110100000101110010101111110001110010101000100100011000010010100001100001111010110101001111111100110010110110010010000001000110000011010101010100011010111100011100011100001011110111110110111010100010100001010101111101111010011011010101111011111110100100010110110111001101100010100001101101000111100111011101011110010001011010001110000000111000011010011000111000101011100101100001011100011011110110001100001000111011101010101011010101011100100110010001111110001011000011011000100011111001100100110110001100110001000100101100101101010010100010011001111111101010001000111110110100011000000001011000000001101111001000000011011000011001001000001000001100010100110100101111001010101100110111011111001100100101101011110011011101100010110111100110100111110000010000101100011010111000000100111110100111011110001101001011000010101111111001111010001000101001110110000000101001111011010010011010100001101110000110011010101001001011100100110100010010011010111100101110001110000110111001011100100011100101111110111100110111111011110111110111101110010111000101001011101011000110011111011001000110001101010110100100011011010000110011111101000010010111010111010110000010011010000011110111100101110010010001100001010110110100101111000011001011101100010100011111001001011010101111111010101010110101000100101011011110000111100000101011100011110010000110010100000010100100011001000000100101010000011110111000100111010011000100000111001001011000011001011010100001010000001101111001001100100011101111001111101000010011010011111100110001111111011100101111000101010111000110010001000011010011101100000001101010000001101101000100111101000001110111001110100101110001100001110111110101110101111011110000010001100111101101011100101011000001101010101010110000111100010101101011110001000010001111100100101110110110010011110110010011001010001101100101011000001011101010001010110000010101111111100000111100111110010111101001010110000000100101000101111110111011110101110101010111100101000111101000101011000101100110000010000011010101000011001101110111110100111011111011001101001011001100000111011101110'
+kljuc1 = main(kript,5,p1)
+print("Kljuc 1: ", kljuc1)
+kljuc3 = main(kript,11,p3)
+print("Kljuc 3: ", kljuc3)
+zaporedje1 = dobiCelotenStringRekurzivno(kript, p1, kljuc1)
+zaporedje3 = dobiCelotenStringRekurzivno(kript, p3, kljuc3)
+kljuc2 = main2(kript, 7, zaporedje1, zaporedje3)
